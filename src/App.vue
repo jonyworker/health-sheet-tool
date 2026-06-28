@@ -46,6 +46,9 @@ const status = ref('idle')
 const message = ref('')
 const existingValues = ref({})
 const isCheckingExisting = ref(false)
+const hasLoadedExistingRecord = ref(false)
+
+const formKeys = Object.keys(form).filter((key) => key !== 'date')
 
 const dateParts = computed(() => {
   const [year, month, day] = form.date.split('-')
@@ -123,14 +126,47 @@ function buildPayload() {
   }
 }
 
+function clearFormValues() {
+  formKeys.forEach((key) => {
+    form[key] = ''
+  })
+}
+
+function normalizeValueFromSheet(key, value) {
+  if (value === null || value === undefined) return ''
+
+  const textValue = String(value).trim()
+
+  if (key === 'restingHeartRate') {
+    return textValue.replace(/\s*bpm$/i, '').trim()
+  }
+
+  if (key === 'stairs') {
+    return textValue.replace(/\s*F$/i, '').trim()
+  }
+
+  return textValue
+}
+
+function fillFormFromExistingValues(values) {
+  Object.entries(values).forEach(([key, value]) => {
+    if (key in form && key !== 'date') {
+      form[key] = normalizeValueFromSheet(key, value)
+    }
+  })
+}
+
 async function fetchExistingRecord() {
   if (!form.date || !APPS_SCRIPT_URL.startsWith('https://script.google.com/')) {
     existingValues.value = {}
+    hasLoadedExistingRecord.value = false
     return
   }
 
   isCheckingExisting.value = true
   existingValues.value = {}
+  hasLoadedExistingRecord.value = false
+  clearFormValues()
 
   try {
     const params = new URLSearchParams({
@@ -148,8 +184,14 @@ async function fetchExistingRecord() {
     }
 
     existingValues.value = result.values || {}
+
+    if (Object.keys(existingValues.value).length > 0) {
+      fillFormFromExistingValues(existingValues.value)
+      hasLoadedExistingRecord.value = true
+    }
   } catch (error) {
     existingValues.value = {}
+    hasLoadedExistingRecord.value = false
   } finally {
     isCheckingExisting.value = false
   }
@@ -170,7 +212,7 @@ async function submitForm() {
 
   if (existingCount.value > 0) {
     const confirmed = window.confirm(
-      `這一天目前已有 ${existingCount.value} 個欄位有資料。\n\n你這次有填寫的欄位會覆蓋 Google Sheets 原始值。\n\n確定要送出嗎？`
+      `這一天目前已有 ${existingCount.value} 個欄位有資料，已自動載入到表單。\n\n送出後會以目前表單內容更新 Google Sheets。\n\n確定要送出嗎？`
     )
 
     if (!confirmed) return
@@ -231,14 +273,14 @@ watch(
           v-if="isCheckingExisting"
           class="mt-3 rounded-2xl bg-sky-50 px-4 py-3 text-sm text-sky-700"
         >
-          正在檢查這一天是否已有紀錄...
+          正在讀取這一天的既有資料...
         </div>
 
         <div
-          v-else-if="existingCount > 0"
+          v-else-if="hasLoadedExistingRecord"
           class="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700"
         >
-          這一天目前已有 {{ existingCount }} 個欄位有資料。若你填寫相同欄位，送出後會覆蓋原始值。
+          已載入這一天的既有資料，共 {{ existingCount }} 個欄位。修改後送出會更新 Google Sheets。
         </div>
 
         <div
@@ -281,13 +323,6 @@ watch(
                   {{ field.unit }}
                 </span>
               </div>
-
-              <p
-                v-if="existingValues[field.key]"
-                class="mt-1.5 text-xs leading-relaxed text-amber-600"
-              >
-                目前已有值：{{ existingValues[field.key] }}，送出後會覆蓋原始值。
-              </p>
             </label>
           </div>
         </section>
@@ -301,13 +336,6 @@ watch(
               placeholder="例如：今天走完一萬步後加爬樓梯，棒式 30 秒。"
               class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-900 focus:ring-4 focus:ring-slate-200"
             />
-
-            <p
-              v-if="existingValues.note"
-              class="mt-1.5 text-xs leading-relaxed text-amber-600"
-            >
-              目前已有值：{{ existingValues.note }}，送出後會覆蓋原始值。
-            </p>
           </label>
         </section>
 
