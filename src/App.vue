@@ -1,8 +1,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx_WF69z-_BInHf_5vT4SbsAMtagqYcQiucsxvM14jIlRuug6MlHX_Q6AOlHTGa_zjs/exec'
-
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzpgGjDvfzDJdkJK24R2zkm-dp9tqZwiW9J5-lWlvn4dBJ_-vjvRJi70FvKa8JXUK7l/exec'
 const today = new Date()
 const yyyy = today.getFullYear()
 const mm = String(today.getMonth() + 1).padStart(2, '0')
