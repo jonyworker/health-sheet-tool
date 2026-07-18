@@ -39,6 +39,9 @@ const form = reactive({
   stairs: '',
   plankSeconds: '',
   squat: '',
+  activityType: '',
+  activityMinutes: '',
+  dailyFatigue: '',
   note: '',
 })
 
@@ -81,6 +84,19 @@ const sections = [
       { key: 'stairs', label: '樓梯', placeholder: '輸入 7，寫入時會變成 7 F' },
       { key: 'plankSeconds', label: '棒式', unit: '秒' },
       { key: 'squat', label: '深蹲' },
+      {
+        key: 'activityType',
+        label: '運動類型',
+        type: 'select',
+        options: ['跑步', '健行', '登山'],
+      },
+      { key: 'activityMinutes', label: '運動時間', inputMode: 'numeric' },
+      {
+        key: 'dailyFatigue',
+        label: '整日疲勞感',
+        type: 'select',
+        options: ['精神很好', '正常', '有點累', '很累', '快爆炸'],
+      },
       { key: 'firstMealTime', label: '第一口時間', type: 'time' },
       { key: 'lastMealTime', label: '最後一口時間', type: 'time' },
     ],
@@ -309,9 +325,22 @@ watch(
               </span>
 
               <div class="relative">
+                <select
+                  v-if="field.type === 'select'"
+                  v-model="form[field.key]"
+                  class="w-full appearance-none rounded-2xl border border-slate-300 bg-white px-4 py-3 pr-10 text-slate-900 outline-none transition focus:border-slate-900 focus:ring-4 focus:ring-slate-200"
+                >
+                  <option value="">請選擇</option>
+                  <option v-for="option in field.options" :key="option" :value="option">
+                    {{ option }}
+                  </option>
+                </select>
+
                 <input
+                  v-else
                   v-model="form[field.key]"
                   :type="field.type || 'text'"
+                  :inputmode="field.inputMode || undefined"
                   :placeholder="field.placeholder || ''"
                   class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-900 focus:ring-4 focus:ring-slate-200"
                 />
